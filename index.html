@@ -7,7 +7,29 @@
 
 	<body>
 
-		<p>Hello</p>
+		<p id="tst">Hello</p>
+		
+		<br>
+		
+		<button onclick="getGithubData">Get data!</button>
+		
+		<script type="text/javascript">
+			
+			function getGithubData() {
+
+				var req = new XMLHttpRequest();
+				
+				req.open("get", "https://api.github.com/users/keanec10");
+				
+				req.send();
+				
+				document.getElementById("tst").innerHTML = "Loading...";
+				while (req.readyState != 4) {}
+				document.getElementById("tst").innerHTML = req.response.login;
+			
+			}
+			
+		</script>
 
 	</body>
 
