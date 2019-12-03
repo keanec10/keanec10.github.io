@@ -26,13 +26,14 @@
 		<script type="text/javascript">
 			
 			var userChecked = false;
+			var user;
 			var repos;
 			var phrases = {};
 			
 			function checkUser() {
 				
 				document.getElementById("data").innerHTML = "Loading...";
-				var user = document.getElementById("user").value;
+				user = document.getElementById("user").value;
 				var userUrl = ("https://api.github.com/users/" + user + "/repos");
 				var userRequest = new XMLHttpRequest();
 				userRequest.onload = verifyUser;
@@ -57,8 +58,6 @@
 			
 			function getPhraseData() {
 				
-				var repoChecked;
-				
 				document.getElementById("data").innerHTML = "Loading...";
 				var phrase = document.getElementById("phrase").value;
 				if (phrase == "") {
@@ -70,43 +69,32 @@
 				phrases[phrase] = 0;
 				
 				for (var i = 0; i < repos.length; i++) {
-					repoChecked = false;
 					var repoUrl = repos[i].contents_url.replace("{+path}", "");
 					var repoRequest = new XMLHttpRequest();
 					repoRequest.onload = scanContents;
 					repoRequest.open("get", repoUrl, true);
 					repoRequest.send();
-					//while (repoChecked == false) {}
 				}
 				
 				function scanContents() {
 					
-					var fileChecked;
-					
 					var contents = JSON.parse(this.responseText);
 					for (var i = 0; i < contents.length; i++) {
-						fileChecked = false;
 						var fileUrl = contents[i].download_url;
 						var fileRequest = new XMLHttpRequest();
 						fileRequest.onload = scanFile;
 						fileRequest.open("get", fileUrl, true);
 						fileRequest.send();
-						//while (fileChecked == false) {}
 					}
-					
-					repoChecked = true;
 					
 					function scanFile() {
 						
-						var file = this.responseText;
-						phrases[phrase] += occurencesOfPatternInText(phrase, file);
-						fileChecked = true;
+						phrases[phrase] += occurencesOfPatternInText(phrase, this.responseText);
+						document.getElementById("data").innerHTML = "Number of occurences of '" + phrase + "' in " + user + "'s files: " + phrases[phrase];
 						
 					}
 					
 				}
-				
-				document.getElementById("data").innerHTML = phrases;
 				
 			}
 			
