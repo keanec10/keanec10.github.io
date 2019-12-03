@@ -7,27 +7,120 @@
 
 	<body>
 
-		<p id="tst">Hello</p>
-		
+		<P>Enter a github user:</P>
+		<input type="text" id="user">
+		<br>
+		<br>
+		<button onclick="checkUser()">Next</button>
+
+		<p>Enter a phrase:</p>
+		<input type="text" id="phrase">
 		<br>
 		
-		<button onclick="getGithubData">Get data!</button>
+		<button onclick="getPhraseData()">Get data!</button>
+		<br>
+		
+		<p id="data"></p>
+		
 		
 		<script type="text/javascript">
 			
-			function getGithubData() {
-
-				var req = new XMLHttpRequest();
-				
-				req.open("get", "https://api.github.com/users/keanec10");
-				
-				req.send();
-				
-				document.getElementById("tst").innerHTML = "Loading...";
-				while (req.readyState != 4) {}
-				document.getElementById("tst").innerHTML = req.response.login;
+			var userChecked = false;
+			var repos;
+			var phrases = {};
 			
+			function checkUser() {
+				
+				document.getElementById("data").innerHTML = "Loading...";
+				var user = document.getElementById("user").value;
+				var userUrl = ("https://api.github.com/users/" + user + "/repos");
+				var userRequest = new XMLHttpRequest();
+				userRequest.onload = verifyUser;
+				userRequest.open("get", userUrl, true);
+				userRequest.send();
+				
+				function verifyUser() {
+					
+					if (JSON.parse(this.responseText).message == "Not Found") {
+						alert("No such Github user exists! Try again");
+						document.getElementById("data").innerHTML = "";
+						return;
+					}
+					
+					repos = JSON.parse(this.responseText);
+					document.getElementById("data").innerHTML = "";
+					userChecked = true;
+					
+				}
+				
 			}
+			
+			function getPhraseData() {
+				
+				var repoChecked;
+				
+				document.getElementById("data").innerHTML = "Loading...";
+				var phrase = document.getElementById("phrase").value;
+				if (phrase == "") {
+					alert("Can't search for an empty phrase! Try again");
+					document.getElementById("data").innerHTML = "";
+					return;
+				}
+				
+				phrases[phrase] = 0;
+				
+				for (var i = 0; i < repos.length; i++) {
+					repoChecked = false;
+					var repoUrl = repos[i].contents_url.replace("{+path}", "");
+					var repoRequest = new XMLHttpRequest();
+					repoRequest.onload = scanContents;
+					repoRequest.open("get", repoUrl, true);
+					repoRequest.send();
+					//while (repoChecked == false) {}
+				}
+				
+				function scanContents() {
+					
+					var fileChecked;
+					
+					var contents = JSON.parse(this.responseText);
+					for (var i = 0; i < contents.length; i++) {
+						fileChecked = false;
+						var fileUrl = contents[i].download_url;
+						var fileRequest = new XMLHttpRequest();
+						fileRequest.onload = scanFile;
+						fileRequest.open("get", fileUrl, true);
+						fileRequest.send();
+						//while (fileChecked == false) {}
+					}
+					
+					repoChecked = true;
+					
+					function scanFile() {
+						
+						var file = this.responseText;
+						phrases[phrase] += occurencesOfPatternInText(phrase, file);
+						fileChecked = true;
+						
+					}
+					
+				}
+				
+				document.getElementById("data").innerHTML = phrases;
+				
+			}
+			
+			function occurencesOfPatternInText(pattern, text) {
+				
+				var count = 0;
+				while (text.search(pattern) != -1) {
+					text = text.replace(pattern, "");
+					count++;
+				}
+				return count;
+				
+			}
+			
 			
 		</script>
 
