@@ -103,7 +103,7 @@
 				var count = 0;
 				var startOfPattern = text.search(pattern);
 				while (startOfPattern != -1) {
-					text = text.slice(startOfPattern,text.length-1).replace(pattern, "");
+					text = text.slice(startOfPattern + pattern.length);
 					count++;
 				}
 				return count;
