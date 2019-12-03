@@ -7,21 +7,29 @@
 
 	<body>
 
-		<P>Enter a github user:</P>
-		<input type="text" id="user">
-		<br>
-		<br>
-		<button onclick="checkUser()">Next</button>
+		<div id="userScreen" style="display:inline;">
+			<P>Enter a github user:</P>
+			<input type="text" id="user">
+			<br>
+			<br>
+			<button onclick="checkUser()">Next</button>
+		</div>
 
-		<p>Enter a phrase:</p>
-		<input type="text" id="phrase">
-		<br>
+		<div id="phraseScreen" style="display:none;">
+			<p>Enter a phrase:</p>
+			<input type="text" id="phrase">
+			<br>
+			<br>
+			<button onclick="getPhraseData()">Get data!</button>
+		</div>
 		
-		<button onclick="getPhraseData()">Get data!</button>
-		<br>
+		<div id="dataScreen" style="display:none;">
+			<p id="data"></p>
+		</div>
 		
-		<p id="data"></p>
-		
+		<div id="loadingScreen" style="display:none;">
+			<p>Loading...</p>
+		</div>
 		
 		<script type="text/javascript">
 			
@@ -32,7 +40,8 @@
 			
 			function checkUser() {
 				
-				document.getElementById("data").innerHTML = "Loading...";
+				document.getElementById("userScreen").style.display = "none";
+				document.getElementById("loadingScreen").style.display = "inline";
 				user = document.getElementById("user").value;
 				var userUrl = ("https://api.github.com/users/" + user + "/repos");
 				var userRequest = new XMLHttpRequest();
@@ -49,7 +58,8 @@
 					}
 					
 					repos = JSON.parse(this.responseText);
-					document.getElementById("data").innerHTML = "";
+					document.getElementById("loadingScreen").style.display = "none";
+					document.getElementById("phraseScreen").style.display = "inline";
 					userChecked = true;
 					
 				}
@@ -58,7 +68,11 @@
 			
 			function getPhraseData() {
 				
-				document.getElementById("data").innerHTML = "Loading...";
+				var filesScanned = 0;
+				var numOfFiles = 0;
+				
+				document.getElementById("loadingScreen").style.display = "inline";
+				document.getElementById("phraseScreen").style.display = "none";
 				var phrase = document.getElementById("phrase").value;
 				if (phrase == "") {
 					alert("Can't search for an empty phrase! Try again");
@@ -79,6 +93,7 @@
 				function scanContents() {
 					
 					var contents = JSON.parse(this.responseText);
+					numOfFiles += contents.length;
 					for (var i = 0; i < contents.length; i++) {
 						var fileUrl = contents[i].download_url;
 						var fileRequest = new XMLHttpRequest();
@@ -90,7 +105,13 @@
 					function scanFile() {
 						
 						phrases[phrase] += occurencesOfPatternInText(phrase, this.responseText);
-						document.getElementById("data").innerHTML = "Number of occurences of '" + phrase + "' in " + user + "'s files: " + phrases[phrase];
+						filesScanned++;
+						if (filesScanned == numOfFiles) {
+							document.getElementById("loadingScreen").style.display = "none";
+							document.getElementById("dataScreen").style.display = "inline";
+							document.getElementById("phraseScreen").style.display = "inline";
+							document.getElementById("data").innerHTML = "Number of occurences of '" + phrase + "' in " + user + "'s files: " + phrases[phrase];
+						}
 						
 					}
 					
