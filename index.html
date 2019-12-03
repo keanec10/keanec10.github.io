@@ -101,8 +101,9 @@
 			function occurencesOfPatternInText(pattern, text) {
 				
 				var count = 0;
-				while (text.search(pattern) != -1) {
-					text = text.replace(pattern, "");
+				var startOfPattern = text.search(pattern);
+				while (startOfPattern != -1) {
+					text = text.slice(startOfPattern,text.length-1).replace(pattern, "");
 					count++;
 				}
 				return count;
