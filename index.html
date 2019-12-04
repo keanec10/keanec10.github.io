@@ -31,12 +31,63 @@
 			<p>Loading...</p>
 		</div>
 		
+		<div id="d3"></div>
+		
+		<script src="https://d3js.org/d3.v4.js"></script>
+		
 		<script type="text/javascript">
+		
+			var phrases = [];
+			var phrasesMax = 0;
+		
+			var margin = {top: 20, right: 30, bottom: 40, left: 90},
+			    width = 460 - margin.left - margin.right,
+			    height = 400 - margin.top - margin.bottom;
 			
+			// append the svg object to the body of the page
+			var svg = d3.select("#d3")
+			  .append("svg")
+			    .attr("width", width + margin.left + margin.right)
+			    .attr("height", height + margin.top + margin.bottom)
+			  .append("g")
+			    .attr("transform",
+			          "translate(" + margin.left + "," + margin.top + ")");
+			
+			
+			
+			// Add X axis
+			var x = d3.scaleLinear()
+			.domain([0, 100])
+			.range([ 0, width]);
+			svg.append("g")
+			.attr("transform", "translate(0," + height + ")")
+			.call(d3.axisBottom(x))
+			.selectAll("text")
+			.attr("transform", "translate(-10,0)rotate(-45)")
+			.style("text-anchor", "end");
+			
+			// Y axis
+			var y = d3.scaleBand()
+			.range([ 0, height ])
+			.domain(phrases.map(function(d) { return d.phrase; }))
+			.padding(.1);
+			svg.append("g")
+			.call(d3.axisLeft(y))
+			
+			//Bars
+			svg.selectAll("myRect")
+			.data(phrases)
+			.enter()
+			.append("rect")
+			.attr("x", x(0) )
+			.attr("y", function(d) { return y(d.phrase); })
+			.attr("width", function(d) { return x(d.count); })
+			.attr("height", y.bandwidth() )
+			.attr("fill", "#69b3a2")
+
 			var userChecked = false;
 			var user;
 			var repos;
-			var phrases = {};
 			
 			function checkUser() {
 				
@@ -73,14 +124,17 @@
 				
 				document.getElementById("loadingScreen").style.display = "inline";
 				document.getElementById("phraseScreen").style.display = "none";
-				var phrase = document.getElementById("phrase").value;
-				if (phrase == "") {
+				var inputPhrase = document.getElementById("phrase").value;
+				if (inputPhrase == "") {
 					alert("Can't search for an empty phrase! Try again");
 					document.getElementById("data").innerHTML = "";
 					return;
 				}
 				
-				phrases[phrase] = 0;
+				currentPhraseObj = {
+					phrase : inputPhrase,
+					count : 0
+				};
 				
 				for (var i = 0; i < repos.length; i++) {
 					var repoUrl = repos[i].contents_url.replace("{+path}", "");
@@ -104,13 +158,18 @@
 					
 					function scanFile() {
 						
-						phrases[phrase] += occurencesOfPatternInText(phrase, this.responseText);
+						currentPhraseObj.count += occurencesOfPatternInText(currentPhraseObj.phrase, this.responseText);
 						filesScanned++;
 						if (filesScanned == numOfFiles) {
+							phrases.push(currentPhraseObj);
+							if (currentPhraseObj.count > phrasesMax) {
+								phrasesMax = currentPhraseObj.count;
+							}
 							document.getElementById("loadingScreen").style.display = "none";
 							document.getElementById("dataScreen").style.display = "inline";
 							document.getElementById("phraseScreen").style.display = "inline";
-							document.getElementById("data").innerHTML = "Number of occurences of '" + phrase + "' in " + user + "'s files: " + phrases[phrase];
+							document.getElementById("data").innerHTML = "Number of occurences of '" + currentPhraseObj.phrase + "' in " + user + "'s files: " + currentPhraseObj.count;
+							updateUI();
 						}
 						
 					}
