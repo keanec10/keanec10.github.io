@@ -13,7 +13,7 @@
 	<body>
 
 		<div id="userScreen" style="display:inline;">
-			<P>Enter a github user:</P>
+			<P>Enter a github user:</p>
 			<input type="text" id="user">
 			<br>
 			<br>
@@ -36,39 +36,41 @@
 			<p>Loading...</p>
 		</div>
 		
-		<svg></svg>
+		<div id="graph"></div>
 		
 		<script src="https://d3js.org/d3.v4.js"></script>
 		
 		<script type="text/javascript">
 		
-			var phrases = [{phrase: "hi", count: 0}, {phrase:"boo", count: 10}];
-			var phrasesMax = 100;
+			var phrases = [];
+			var phrasesMax = 0;
 			
-			var pad = 0.4;
+			var padding = 0.2;
 			var margin = 60;
 			var width = 1000;
 			var height = 600;
 			
-			var svg = d3.select("body").append("svg").attr("width", width).attr("height", height).attr("margin", margin).attr("pad", pad);
+			var svg = d3.select("#graph").append("svg").attr("width", width).attr("height", height).attr("margin", margin).attr("padding", padding);
 			
-			var x_scale = d3.scaleLinear().domain([0, phrasesMax]).range([margin, width-margin]);
+			var x_scale = d3.scaleLinear().domain([0, phrasesMax]).range([margin, (width-margin)]);
 			
 			var x_axis = d3.axisBottom().scale(x_scale);
 			
 			svg.append('g').attr("transform", "translate(" + 0 + "," + (height-margin) + ")").attr("id", "xaxis").call(x_axis);
 			
-			var y_scale = d3.scaleBand().domain(phrases.map(function(d) { return d.phrase })).range([0, height]).padding(pad);
+			var y_scale = d3.scaleBand().domain(phrases.map(function(d) { return d.phrase })).range([(height-margin), margin]).padding(padding);
 			
 			var y_axis = d3.axisLeft().scale(y_scale);
 			
-			svg.append('g').attr("transform", "translate(" + margin + "," + (-margin) + ")").attr("id", "yaxis").call(y_axis);
+			svg.append('g').attr("transform", "translate(" + margin + "," + 0 + ")").attr("id", "yaxis").call(y_axis);
 			
 			svg.selectAll(".bar").data(phrases).enter().append("rect").attr("class", "bar")
-				.attr("x", margin).attr("y", function(d) { return (y_scale(d.phrase) - margin); })
-				.attr("width", function(d) { return (x_scale(d.count) - margin) }).attr("height", (height/(2*phrases.length)));
+				.attr("x", margin).attr("y", function(d) { return y_scale(d.phrase); })
+				.attr("width", function(d) { return (x_scale(d.count) - margin); }).attr("height", y_scale.bandwidth());
 
 			function updateUI() {
+				
+				phrases.sort(function(a,b) { if (a.count < b.count) { return -1; } else { return 1; } });
 				
 				x_scale.domain([0, phrasesMax]);
 				y_scale.domain(phrases.map(function(d) { return d.phrase }));
@@ -76,13 +78,13 @@
 				svg.select("#xaxis").transition().duration(1000).call(x_axis);
 				svg.select("#yaxis").transition().duration(1000).call(y_axis);
 				
-				svg.selectAll(".bar").data(phrases).transition().duration(1000)
-				.attr("y", function(d) { return (y_scale(d.phrase) - margin); })
-				.attr("height", (height/(2*phrases.length)));
-				
 				svg.selectAll(".bar").data(phrases).enter().append("rect").attr("class", "bar").transition().duration(1000)
-				.attr("x", margin).attr("y", function(d) { return (y_scale(d.phrase) - margin); })
-				.attr("width", function(d) { return (x_scale(d.count) - margin) }).attr("height", (height/(2*phrases.length)));
+				.attr("x", margin).attr("y", function(d) { y_scale(d.phrase); })
+				.attr("width", function(d) { return (x_scale(d.count) - margin) }).attr("height", y_scale.bandwidth());
+				
+				svg.selectAll(".bar").data(phrases).transition().duration(1000)
+				.attr("y", function(d) { return y_scale(d.phrase); })
+				.attr("width", function(d) { return (x_scale(d.count) - margin); }).attr("height", y_scale.bandwidth());
 				
 			}
 
