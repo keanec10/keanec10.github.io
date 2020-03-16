@@ -1,356 +1,42 @@
+<!DOCTYPE html>
 <html>
-
-	<head>
-
-		<style>
-		
-			@font-face { font-family : Thefont; src : url("thefont.otf"); }
-		
-			body {
-				
-				background : rgb(247,195,240);
-				background : linear-gradient(0deg, rgba(247,195,240,1) 0%, rgba(228,180,104,1) 100%);
-				font-family : Thefont;
-				font-size : 30px;
-				
-			}
-		
-			.bar {
-				
-				fill : #ffff99;
-				border : 1px solid black;
-				
-			}
-			
-			.theInput {
-				
-				font-family : Thefont;
-				font-size : 20px;
-				text-align : center;
-				
-			}
-			
-			.theButton {
-				
-				box-shadow : inset 0px 1px 3px 0px #91b8b3;
-				background : linear-gradient(to bottom, #768d87 5%, #6c7c7c 100%);
-				background-color : #768d87;
-				border-radius : 5px;
-				border : 1px solid #566963;
-				display : inline-block;
-				cursor : pointer;
-				color : #ffffff;
-				font-family : Thefont;
-				font-size : 20px;
-				font-weight : bold;
-				padding : 11px 23px;
-				text-decoration : none;
-				text-shadow : 0px -1px 0px #2b665e;
-				
-			}
-			
-			.theButton:hover {
-				
-				background : linear-gradient(to bottom, #6c7c7c 5%, #768d87 100%);
-				background-color : #6c7c7c;
-				
-			}
-			.theButton:active {
-				
-				position : relative;
-				top : 1px;
-				
-			}
-			
-		</style>
-	
-	</head>
-
-	<body>
-
-		<div id="screen"></div>
-		
-		<div id="graph"></div>
-		
-		<script src="https://d3js.org/d3.v4.js"></script>
-		
-		<script type="text/javascript">
-		
-			var phrases = [];
-			var phrasesMax = 0;
-			
-			// SCREEN SETUP
-			
-			var screen = d3.select("#screen")
-							.style("width", screen.width/2).style("height", screen.height)
-							.style("position", "relative").style("left", screen.width/4).style("top", screen.height/4).style("text-align", "center")
-							.style("float", "left").style("diplay", "inline").style("opacity", 1);
-			
-			// display message + spacing
-			
-			var txt = screen.append("text").text("Enter a Github user:");
-			screen.append("br");
-			screen.append("br");
-			
-			// text input + spacing
-			
-			var field = screen.append("input")
-								.attr("class", "theInput").attr("id", "field").attr("type", "text")
-								.style("display", "inline").style("opacity", 1);
-			screen.append("br");
-			screen.append("br");
-			
-			// button to proceed
-			
-			var btn = screen.append("button")
-							.attr("class", "theButton").attr("onclick", "fetchUserData()")
-							.style("display", "inline").style("opacity", 1).text("Next");
-			
-			// helper function to fade a target element in or out over a given time
-			
-			function fade(target, timeDelay, timeDuration, InOrOut) {
-				
-				var newOpacity = (InOrOut == "in") ? 1 : 0;
-				target.transition().delay(timeDelay).duration(timeDuration).style("opacity", newOpacity);
-				
-			}
-			
-			// helper function to phase in and out of loading the message to display
-			
-			function phaseTextTransition(message) {
-				
-				fade(txt, 0, 500, "out");
-				txt.transition().delay(500).text(message);
-				fade(txt, 500, 500, "in");
-				
-			}
-			
-			// GRAPH SETUP
-			
-			var padding = 0.2;
-			var margin = 60;
-			var width = 1000;
-			var height = 600;
-			
-			var graph = d3.select("#graph").append("svg")
-						.attr("width", width).attr("height", height).attr("margin", margin).attr("padding", padding)
-						.style("float", "left").style("display", "none").style("opacity", 0);
-			
-			// x axis
-			
-			var x_scale = d3.scaleLinear().domain([0, phrasesMax]).range([margin, (width-margin)]);
-			var x_axis = d3.axisBottom().scale(x_scale);
-			graph.append('g').attr("transform", "translate(" + 0 + "," + (height-margin) + ")").attr("id", "xaxis").call(x_axis);
-			
-			// y axis
-			
-			var y_scale = d3.scaleBand().domain(phrases.map(function(d) { return d.phrase })).range([(height-margin), margin]).padding(padding);
-			var y_axis = d3.axisLeft().scale(y_scale);
-			graph.append('g').attr("transform", "translate(" + margin + "," + 0 + ")").attr("id", "yaxis").call(y_axis);
-			
-			// data bars
-			
-			graph.selectAll(".bar").data(phrases).enter().append("rect")
-				.attr("class", "bar")
-				.attr("x", margin).attr("y", function(d) { return y_scale(d.phrase); })
-				.attr("width", function(d) { return (x_scale(d.count) - margin); }).attr("height", y_scale.bandwidth());
-				
-				
-			// MAIN FUNCTIONALITY
-
-			var user;
-			var repos;
-			
-			function fetchUserData() {
-				
-				// update display for loading
-				
-				phaseTextTransition("Loading...");
-				fade(field, 0, 500, "out");
-				fade(btn, 0, 500, "out");
-				
-				// parse input and make request
-				
-				user = document.getElementById("field").value;
-				document.getElementById("field").value = "";
-				var userUrl = ("https://api.github.com/users/" + user + "/repos");
-				var userRequest = new XMLHttpRequest();
-				userRequest.onload = verifyUser;
-				userRequest.open("get", userUrl, true);
-				userRequest.send();
-				
-				function verifyUser() {
-					
-					// ensure that the user exists
-					
-					if (JSON.parse(this.responseText).message == "Not Found") {
-						alert("No such Github user exists! Try again");
-						phaseTextTransition("Enter a Github user:");
-					} else {
-						repos = JSON.parse(this.responseText);
-						btn.attr("onclick", "fetchPhraseData()");
-						btn.text("Get data");
-						phaseTextTransition("Enter a phrase:");
-						
-						screen.transition().duration(1000)
-							.style("left", 0)
-							.style("width", 300)
-							.style("font-size", 15);
-							
-						field.transition().duration(1000)
-							.style("font-size", 10);
-							
-						btn.transition().duration(1000)
-							.style("font-size", 10);
-				
-						graph.transition().delay(1000).style("display", "inline").style("left", 0).style("top", 0);
-						graph.transition().delay(1000).duration(1000).style("opacity", 1);
-					
-					}
-					
-					// update display for use
-					
-					fade(field, 500, 500, "in");
-					fade(btn, 500, 500, "in");
-					
-				}
-				
-			}
-			
-			function fetchPhraseData() {
-				
-				// update display for loading
-				
-				phaseTextTransition("Loading...");
-				fade(field, 0, 500, "out");
-				fade(btn, 0, 500, "out");
-				
-				// prepare to search for the entered phrase
-				
-				var filesScanned = 0;
-				var numOfFiles = 0;
-				
-				var inputPhrase = document.getElementById("field").value;
-				document.getElementById("field").value = "";
-				
-				// avoid accepting empty input or making duplicates of exisiting searches
-				
-				var alreadyThere = false;
-				for (var i = 0; i < phrases.length; i++) {
-					if (phrases[i].phrase == inputPhrase) {
-						alreadyThere = true;
-					}
-				}
-				
-				if ((inputPhrase == "") || alreadyThere) {
-					alert("Phrase is either empty or has already been searched! Try again");
-					phaseTextTransition("Enter a phrase:");
-					fade(field, 500, 500, "in");
-					fade(btn, 500, 500, "in");
-					return;
-				}
-				
-				// make the request to scan each file in each repo for the entered phrase
-				
-				currentPhraseObj = {
-					phrase : inputPhrase,
-					count : 0
-				};
-				
-				for (var i = 0; i < repos.length; i++) {
-					var repoUrl = repos[i].contents_url.replace("{+path}", "");
-					var repoRequest = new XMLHttpRequest();
-					repoRequest.onload = scanContents;
-					repoRequest.open("get", repoUrl, true);
-					repoRequest.send();
-				}
-				
-				function scanContents() {
-					
-					var contents = JSON.parse(this.responseText);
-					numOfFiles += contents.length;
-					for (var i = 0; i < contents.length; i++) {
-						var fileUrl = contents[i].download_url;
-						var fileRequest = new XMLHttpRequest();
-						fileRequest.onload = scanFile;
-						fileRequest.open("get", fileUrl, true);
-						fileRequest.send();
-					}
-					
-					function scanFile() {
-						
-						currentPhraseObj.count += occurencesOfPatternInText(currentPhraseObj.phrase, this.responseText);
-						filesScanned++;
-						
-						// the scan of the files is complete
-						
-						if ((filesScanned == numOfFiles) && (numOfFiles > 1)) {
-							
-							// update the phrase data
-							
-							phrases.push(currentPhraseObj);
-							
-							// update the max value for the graph's x axis if necessary
-							
-							if (currentPhraseObj.count > phrasesMax) {
-								phrasesMax = currentPhraseObj.count;
-							}
-				
-							// refresh phrase data
-							
-							phrases.sort(function(a,b) { if (a.count < b.count) { return -1; } else { return 1; } });
-							
-							// refresh graph axes
-							
-							x_scale.domain([0, phrasesMax]);
-							y_scale.domain(phrases.map(function(d) { return d.phrase }));
-							graph.select("#xaxis").transition().duration(1000).call(x_axis);
-							graph.select("#yaxis").transition().duration(1000).call(y_axis);
-							
-							// add new data bars to the graph
-							
-							graph.selectAll(".bar").data(phrases).enter().append("rect")
-								.attr("class", "bar").transition().duration(1000)
-								.attr("x", margin).attr("y", function(d) { y_scale(d.phrase); })
-								.attr("width", function(d) { return (x_scale(d.count) - margin) }).attr("height", y_scale.bandwidth());
-							
-							// refresh graph to reflect changes
-							
-							graph.selectAll(".bar").data(phrases).transition().duration(1000)
-								.attr("y", function(d) { return y_scale(d.phrase); })
-								.attr("width", function(d) { return (x_scale(d.count) - margin); }).attr("height", y_scale.bandwidth());
-								
-							// update display for use
-							
-							phaseTextTransition("Enter a phrase:");
-							fade(field, 0, 500, "in");
-							fade(btn, 0, 500, "in");
-							
-							
-						}
-						
-					}
-					
-				}
-				
-			}
-			
-			// helper function to find the number of times a pattern is present in a given text
-			
-			function occurencesOfPatternInText(pattern, text) {
-				
-				var count = 0;
-				while (text.search(pattern) != -1) {
-					text = text.slice(text.search(pattern) + pattern.length);
-					count++;
-				}
-				return count;
-				
-			}
-			
-			
-		</script>
-
-	</body>
-
+<head>
+<meta charset="utf-8">
+<title>SureCoverage Hand Processing</title>
+</head>
+<body>
+<h2>SureCoverage Hand Processing</h2>
+<p id="status">OpenCV.js is loading, please wait...</p>
+<div>
+  <div class="inputoutput">
+    <img id="canvasInput" alt="No Image" />
+    <div class="caption">imageSrc <input type="file" id="fileInput" name="file" /></div>
+  </div>
+  <div class="inputoutput">
+    <canvas id="canvasOutput" ></canvas>
+    <div class="caption">canvasOutput</div>
+  </div>
+</div>
+<script type="text/javascript">
+let imgElement = document.getElementById('canvasInput');
+let inputElement = document.getElementById('fileInput');
+inputElement.addEventListener('change', (e) => {
+  imgElement.src = URL.createObjectURL(e.target.files[0]);
+}, false);
+imgElement.onload = function() {
+	let src = cv.imread('canvasInput');
+	let dst = new cv.Mat();
+	let low = new cv.Mat(src.rows, src.cols, src.type(), [0, 36, 230, 0]);
+	let high = new cv.Mat(src.rows, src.cols, src.type(), [20, 61, 255, 255]);
+	// You can try more different parameters
+	cv.inRange(src, low, high, dst);
+	cv.imshow('canvasOutput', dst);
+	src.delete(); dst.delete(); low.delete(); high.delete();
+};
+function onOpenCvReady() {
+  document.getElementById('status').innerHTML = 'OpenCV.js is ready.';
+}
+</script>
+<script async src="opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+</body>
 </html>
