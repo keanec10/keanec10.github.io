@@ -204,6 +204,10 @@ var app = {
     			
 	   				app.setUpCameraPermission();
 	    			
+	    		} else {
+	    			
+	    			app.setUpCameraStream();
+	    			
 	    		}
 	    		
 	    	}
